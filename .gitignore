@@ -1,1 +1,7 @@
+
+# SBT artifacts.
 target
+
+# IntelliJ artifacts.
+.idea
+build
