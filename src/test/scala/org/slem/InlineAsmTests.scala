@@ -19,7 +19,7 @@
  */
 
 
-package org.slem.tests
+package org.slem
  
 import org.scalatest.Spec
 import org.slem.IRTree._
