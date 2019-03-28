@@ -22,13 +22,13 @@ package org.slem.example.obr
 
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.RegexParsers
+import ObrTree._
+
 
 /**
  * Module containing parsers for the expression language.
  */
 trait SyntaxAnalysis extends RegexParsers with PackratParsers {
-
-    import ObrTree._
 
     lazy val parser : PackratParser[ObrInt] =
         phrase (program)

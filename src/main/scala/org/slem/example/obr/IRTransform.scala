@@ -19,16 +19,14 @@
 
 package org.slem.example.obr
 
+import org.bitbucket.inkytonik.kiama.==>
+import org.slem.example.obr.ObrTree._
+import org.slem.IRTree._
+import org.slem.util.IRTreeFactory._
+import scala.collection.mutable.HashMap
+
 object IRTransform {
 
-    import org.slem.example.obr.ObrTree._
-    import org.slem.example.obr.SemanticAnalysis._
-    import org.slem.IRTree._
-    import org.slem.util.IRTreeFactory._
-    import org.slem.example.obr.SymbolTable._
-    import org.kiama.attribution.Attribution._
-    import scala.collection.mutable.HashMap
-    
     var valuemap = HashMap[String, L_Value] ()
     var arraySizeMap = HashMap[String, Int] ()
     
@@ -468,7 +466,7 @@ object IRTransform {
             {
                 val indxval = codeExpression(indx)
                 //val typeidx = L_TypeIndex(L_IntType(32), indxval)
-                val elementPtr = L_GetElementPtr(valuemap(idn)->resultType, valuemap(idn), List(0, indxval), inBounds = true)
+                val elementPtr = L_GetElementPtr(resultType(valuemap(idn)), valuemap(idn), List(0, indxval), inBounds = true)
                 val elementVal = L_Load(L_PointerType(L_IntType(32)), elementPtr)
                 addInstructions(List(elementPtr, elementVal))
                 elementVal

@@ -18,11 +18,13 @@
 */
 
 package org.slem
-import org.kiama.util.Emitter
 
-class IRTreeEncoder(emitter : Emitter) 
+import org.bitbucket.inkytonik.kiama.==>
+import org.bitbucket.inkytonik.kiama.util.Emitter
+import org.bitbucket.inkytonik.kiama.attribution.Attribution
+
+class IRTreeEncoder(emitter : Emitter) extends Attribution
 {
-    import org.kiama.attribution.Attribution._
     import org.slem.IRTree._
     import java.io.FileWriter
 
@@ -181,14 +183,14 @@ class IRTreeEncoder(emitter : Emitter)
         "!" + (currentMetadataNum - 1)
     }
     
-    def reset() =
+    def reset(): Unit =
     {
         fileout = ""
         currentParamNum = 0
         currentSSA = 0
     }
     
-    def encodeTree(p : L_Program) = 
+    def encodeTree(p : L_Program): Unit =
     {
         reset()
         for(module <- p.modules)
@@ -219,14 +221,14 @@ class IRTreeEncoder(emitter : Emitter)
         }
     }
     
-    def writeFile() =
+    def writeFile(): Unit =
     {
         val fw = new FileWriter("LLVMIR/newprog.ll")
         fw.write(fileout)
         fw.close()    
     }
     
-    def encodeGlobal(g : L_Global) : Int = 
+    def encodeGlobal(g : L_Global) : Unit =
     {
         g match
         {
@@ -236,16 +238,15 @@ class IRTreeEncoder(emitter : Emitter)
             case f : L_FunctionDefinition => encodeFunctionDefinition(f)
             case _  => {}
         }
-        0
     }
     
-    def encodeArgument(a : L_Argument) =
+    def encodeArgument(a : L_Argument): Unit =
     {
         encodeType(a.ty)
         emit(" ")
         if(a.value == null)
         {
-            emit(a->paramName)
+            emit(paramName(a))
         }
         else
         {
@@ -316,7 +317,7 @@ class IRTreeEncoder(emitter : Emitter)
                 var i = 1
                 for(e<-n.elements)
                 {
-                    encodeType(e->resultType)
+                    encodeType(resultType(e))
                     emit(" ")
                     encodeValue(e)
                     if(i < imax)
@@ -334,7 +335,7 @@ class IRTreeEncoder(emitter : Emitter)
                 var i = 1
                 for(e<-n.elements)
                 {
-                    encodeType(e->resultType)
+                    encodeType(resultType(e))
                     emit(" ")
                     encodeValue(e)
                     if(i < imax)
@@ -352,7 +353,7 @@ class IRTreeEncoder(emitter : Emitter)
                 var i = 1
                 for(e<-n.elements)
                 {
-                    encodeType(e->resultType)
+                    encodeType(resultType(e))
                     emit(" ")
                     encodeValue(e)
                     if(i < imax)
@@ -378,7 +379,7 @@ class IRTreeEncoder(emitter : Emitter)
                 var i = 0
                 for(e<-n.elements)
                 {
-                    encodeType(e->resultType)
+                    encodeType(resultType(e))
                     emit(" ")
                     encodeValue(e)
                     if(i < imax - 1)
@@ -401,28 +402,26 @@ class IRTreeEncoder(emitter : Emitter)
         }
     }
     
-    def encodeLabel(l : L_Label) =
+    def encodeLabel(l : L_Label): Unit =
     {
-        emit(l->labelname)
+        emit(labelname(l))
     }
     
-    def encodeValue(v : L_Value) : Int =
+    def encodeValue(v : L_Value) : Unit =
     {
-        v match
-        {
-            case n : L_Argument => emit(n->paramName)
-            case n : L_Instruction => emit(n->ssa)
-            case n : L_GlobalVariable => emit(n->gvarname)
-            case n : L_Constant => encodeConstant(n)
-            case n : L_FunctionReference => encodeValue(n.funcPtr)
-            case n : L_FunctionDefinition => emit(n->funcname)
-            case n : L_FunctionDeclaration => emit(n->funcname)
-            case n : L_MetadataString => emit("!" + '"' + n.str + '"')
-            case n : L_MetadataNode => emit(n->metadataname)
-            case n : L_NamedMetadata => emit("!" + n.name)
+        v match {
+            case n: L_Argument => emit(paramName(n))
+            case n: L_Instruction => emit(ssa(n))
+            case n: L_GlobalVariable => emit(gvarname(n))
+            case n: L_Constant => encodeConstant(n)
+            case n: L_FunctionReference => encodeValue(n.funcPtr)
+            case n: L_FunctionDefinition => emit(funcname(n))
+            case n: L_FunctionDeclaration => emit(funcname(n))
+            case n: L_MetadataString => emit("!" + '"' + n.str + '"')
+            case n: L_MetadataNode => emit(metadataname(n))
+            case n: L_NamedMetadata => emit("!" + n.name)
             case _ => emit("UnknownValue : " + v)
         }
-        0
     }
     
     def encodeMetadata(m : L_BaseMetadata)
@@ -433,9 +432,9 @@ class IRTreeEncoder(emitter : Emitter)
             {
                 emit(n->metadataname + " = metadata !{ ")
                 var i = 0
-                for(mnode <-(n.fields))
+                for(mnode <- n.fields)
                 {
-                    encodeType(mnode->resultType)
+                    encodeType(resultType(mnode))
                     emit(" ")
                     encodeValue(mnode)
                     if(i < n.fields.size - 1)
@@ -450,7 +449,7 @@ class IRTreeEncoder(emitter : Emitter)
             {
                 emit("!" + n.name + " = !{ ")
                 var i = 0
-                for(mnode <-(n.fields))
+                for(mnode <- n.fields)
                 {
                     //encodeType(mnode->resultType)
                     //emit(" ")
@@ -466,7 +465,7 @@ class IRTreeEncoder(emitter : Emitter)
         }
     }
     
-    def encodeBoundMetadata(b : L_Instruction) =
+    def encodeBoundMetadata(b : L_Instruction): Unit =
     {
         if(b.mappedMetadataIdn != null && b.mappedMetadataVal != null)
         {
@@ -480,16 +479,16 @@ class IRTreeEncoder(emitter : Emitter)
             encodeValue(b.mappedMetadataVal)
         }
     }
-    def encodeInstruction(b : L_Instruction) = 
+    def encodeInstruction(b : L_Instruction): Unit =
     {
         b match
         {
             case n : L_BinOpInstruction =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = ")
                 emitw(n.instructionString)
-                encodeType(n.LHS->resultType)
+                encodeType(resultType(n.LHS))
                 emit(" ")
                 encodeValue(n.LHS)
                 emit(", ")
@@ -498,9 +497,9 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_ExtractElement =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = extractelement ")
-                encodeType(n.vec->resultType)
+                encodeType(resultType(n.vec))
                 emit(" ")
                 encodeValue(n.vec)
                 emit(", i32 ")
@@ -509,13 +508,13 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_InsertElement =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = insertelement ")
-                encodeType(n.vec->resultType)
+                encodeType(resultType(n.vec))
                 emit(" ")
                 encodeValue(n.vec)
                 emit(", ")
-                encodeType(n.elt->resultType)
+                encodeType(resultType(n.elt))
                 emit(" ")
                 encodeValue(n.elt)
                 emit(", i32 ")
@@ -523,44 +522,44 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_ShuffleVector =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = shufflevector ")
-                encodeType(n.v1->resultType)
+                encodeType(resultType(n.v1))
                 emit(" ")
                 encodeValue(n.v1)
                 emit(", ")
-                encodeType(n.v2->resultType)
+                encodeType(resultType(n.v2))
                 emit(" ")
                 encodeValue(n.v2)
                 emit(", ")
-                encodeType(n.mask->resultType)
+                encodeType(resultType(n.mask))
                 emit(" ")
                 encodeValue(n.mask)
             }
             case n : L_ExtractValue =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = extractvalue ")
-                encodeType(n.value->resultType)
+                encodeType(resultType(n.value))
                 emit(" ")
                 encodeValue(n.value)
                 for(idx<-n.indexes)
                 {
                     emit(", ")
-                    encodeType(idx->resultType)
+                    encodeType(resultType(idx))
                     emit(" ")
                     encodeValue(idx)
                 }
             }
             case n : L_InsertValue =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = insertvalue ")
-                encodeType(n.value->resultType)
+                encodeType(resultType(n.value))
                 emit(" ")
                 encodeValue(n.value)
                 emit(", ")
-                encodeType(n.elt->resultType)
+                encodeType(resultType(n.elt))
                 emit(" ")
                 encodeValue(n.elt)
                 emit(", ")
@@ -568,13 +567,13 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_Alloca =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = alloca ")
                 encodeType(n.typ)
                 if(n.numElements != null)
                 {
                    emit(", ")
-                   encodeType(n.numElements->resultType)
+                   encodeType(resultType(n.numElements))
                    emit(" ")
                    encodeValue(n.numElements)
                 }
@@ -585,7 +584,7 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_Load =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = ")
                 if(n.isVolatile)
                 {
@@ -613,11 +612,11 @@ class IRTreeEncoder(emitter : Emitter)
                     emit("volatile ")
                 }
                 emitw("store")
-                encodeType(n.value->resultType)
+                encodeType(resultType(n.value))
                 emit(" ")
                 encodeValue(n.value)
                 emit(", ")
-                encodeType(n.pointer->resultType)
+                encodeType(resultType(n.pointer))
                 emit(" ")
                 encodeValue(n.pointer)
                 if(n.alignment != 0)
@@ -633,7 +632,7 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_GetElementPtr =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = getelementptr ")
                 if(n.inBounds)
                 {
@@ -645,14 +644,14 @@ class IRTreeEncoder(emitter : Emitter)
                 }
                 else
                 {
-                    encodeType(n.pval->resultType)
+                    encodeType(resultType(n.pval))
                 }
                 emit(" ")
                 encodeValue(n.pval)
                 for(ti<-n.typeIndexes)
                 {
                     emit(", ")
-                    encodeType(ti->resultType)
+                    encodeType(resultType(ti))
                     emit(" ")
                     encodeValue(ti)
                     /*
@@ -664,9 +663,9 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_ConversionOperation =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = " + n.instructionString + " ")
-                encodeType(n.value->resultType)
+                encodeType(resultType(n.value))
                 emit(" ")
                 encodeValue(n.value)
                 emit(" to ")
@@ -674,9 +673,9 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_ICMP =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = icmp " + n.compCode + " ")
-                encodeType(n.LHS->resultType)
+                encodeType(resultType(n.LHS))
                 emit(" ")
                 encodeValue(n.LHS)
                 emit(", ")
@@ -684,9 +683,9 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_FCMP =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = fcmp " + n.compCode + " ")
-                encodeType(n.LHS->resultType)
+                encodeType(resultType(n.LHS))
                 emit(" ")
                 encodeValue(n.LHS)
                 emit(", ")
@@ -694,9 +693,9 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_Phi =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = phi ")
-                encodeType(n.valueLabels.head.value->resultType)
+                encodeType(resultType(n.valueLabels.head.value))
                 var i = 0
                 for(vlab<-n.valueLabels)
                 {
@@ -714,17 +713,17 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_Select =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = select ")
-                encodeType(n.cond->resultType)
+                encodeType(resultType(n.cond))
                 emit(" ")
                 encodeValue(n.cond)
                 emit(", ")
-                encodeType(n.val1->resultType)
+                encodeType(resultType(n.val1))
                 emit(" ")
                 encodeValue(n.val1)
                 emit(", ")
-                encodeType(n.val2->resultType)
+                encodeType(resultType(n.val2))
                 emit(" ")
                 encodeValue(n.val2)
             }
@@ -736,7 +735,7 @@ class IRTreeEncoder(emitter : Emitter)
                     n.typ match {
                         case L_VoidType() => {}
                         case _ => {
-                            emit(n -> ssa)
+                            emit(ssa(n))
                             emit(" = ")
                         }
                     }
@@ -746,7 +745,7 @@ class IRTreeEncoder(emitter : Emitter)
                     n.fnptrval->resultType match {
                         case L_VoidType() => {}
                         case _ => {
-                            emit(n -> ssa)
+                            emit(ssa(n))
                             emit(" = ")
                         }
                     }                    
@@ -756,7 +755,7 @@ class IRTreeEncoder(emitter : Emitter)
                     emitw("tail")
                 }
                 emitw("call")
-                if(n.callConvention.size > 0)
+                if(n.callConvention.nonEmpty)
                 {
                     emitw(n.callConvention)
                 }
@@ -778,11 +777,11 @@ class IRTreeEncoder(emitter : Emitter)
                     {
                         case fref : L_FunctionReference =>
                         {
-                           encodeType(fref.funcPtr->resultType)  
+                           encodeType(resultType(fref.funcPtr))
                         }
                         case _ =>
                         {
-                            encodeType(n.fnptrval->resultType)                       
+                            encodeType(resultType(n.fnptrval))
                         }
                     }
                 }
@@ -809,9 +808,9 @@ class IRTreeEncoder(emitter : Emitter)
             }
             case n : L_Va_Arg =>
             {
-                emit(n->ssa)
+                emit(ssa(n))
                 emit(" = va_arg ")
-                encodeType(n.argList->resultType)
+                encodeType(resultType(n.argList))
                 emit(" ")
                 encodeValue(n.argList)
                 emit(", ")
@@ -829,12 +828,12 @@ class IRTreeEncoder(emitter : Emitter)
             case n : L_Ret =>
             {
                 emitw("ret")
-                n.rvalue->resultType match
+                resultType(n.rvalue) match
                 {
                     case n2 : L_VoidType => emit("void")
                     case _ =>
                     {
-                        encodeType(n.rvalue->resultType)
+                        encodeType(resultType(n.rvalue))
                         emit(" ")
                         encodeValue(n.rvalue)
                     }
@@ -848,7 +847,7 @@ class IRTreeEncoder(emitter : Emitter)
             case n : L_BrCond =>
             {
                 emitw("br")
-                encodeType(n.cond->resultType)
+                encodeType(resultType(n.cond))
                 emit(" ")
                 encodeValue(n.cond)
                 emit(", label %")
@@ -859,7 +858,7 @@ class IRTreeEncoder(emitter : Emitter)
             case n : L_Switch =>
             {
                 emitw("switch")
-                encodeType(n.value->resultType)
+                encodeType(resultType(n.value))
                 emit(" ")
                 encodeValue(n.value)
                 emit(", label %")
@@ -867,7 +866,7 @@ class IRTreeEncoder(emitter : Emitter)
                 emit(" [ ")
                 for(valLab<-n.cases)
                 {
-                    encodeType(valLab.value->resultType)
+                    encodeType(resultType(valLab.value))
                     emit(" ")
                     encodeValue(valLab.value)
                     emit(", label %")
@@ -879,7 +878,7 @@ class IRTreeEncoder(emitter : Emitter)
             case n : L_IndirectBr =>
             {
                 emitw("indirectbr")
-                encodeType(n.address->resultType)
+                encodeType(resultType(n.address))
                 emit(" ")
                 encodeValue(n.address)
                 emit(", [ ")
@@ -905,7 +904,7 @@ class IRTreeEncoder(emitter : Emitter)
                     n.funcTypePtr match {
                       case L_VoidType() => {}
                       case _ => {
-                        emit(n -> ssa)
+                        emit(ssa(n))
                         emit(" = ")
                       }
                     }
@@ -915,13 +914,13 @@ class IRTreeEncoder(emitter : Emitter)
                     n.funcPtrVal->resultType match {
                       case L_VoidType() => {}
                       case _ => {
-                        emit(n -> ssa)
+                        emit(ssa(n))
                         emit(" = ")
                       }
                     }
                 }
                 emit("invoke ")
-                if(n.callConv.size > 0)
+                if(n.callConv.nonEmpty)
                 {
                     emit(n.callConv)
                     emit(" ")
@@ -936,7 +935,7 @@ class IRTreeEncoder(emitter : Emitter)
                 }
                 else
                 {
-                    encodeType(n.funcPtrVal->resultType)
+                    encodeType(resultType(n.funcPtrVal))
                 }
                 emit(" ")
                 encodeValue(n.funcPtrVal)
@@ -975,7 +974,7 @@ class IRTreeEncoder(emitter : Emitter)
         }
     }
     
-    def encodeBlock(b : L_Block) = 
+    def encodeBlock(b : L_Block): Unit =
     {
         encodeLabel(b.label)
         emitln(":")
@@ -991,7 +990,7 @@ class IRTreeEncoder(emitter : Emitter)
         emitln()
     }
     
-    def encodeFunctionDefinition(f : L_FunctionDefinition) =
+    def encodeFunctionDefinition(f : L_FunctionDefinition): Unit =
     {
         currentParamNum = 0
         currentSSA = 0
@@ -1005,12 +1004,12 @@ class IRTreeEncoder(emitter : Emitter)
         }
         encodeType(f.returnType)
         emit(" ")
-        emit(f->funcname)
+        emit(funcname(f))
         emit("(")
         
         var imax = f.arguments.size
         var i = 1
-        for(a<-(f.arguments))
+        for(a<- f.arguments)
         {
             encodeArgument(a)
             if(i < imax)
@@ -1026,7 +1025,7 @@ class IRTreeEncoder(emitter : Emitter)
         {
             emitw(funcAtt)
         }
-        if(f.section.size > 0)
+        if(f.section.nonEmpty)
         {
             emitw("section " + '"' + f.section + '"')
         }
@@ -1034,7 +1033,7 @@ class IRTreeEncoder(emitter : Emitter)
         {
             emitw("align " + f.alignment)
         }
-        if(f.garbageCollector.size > 0)
+        if(f.garbageCollector.nonEmpty)
         {
             emitw("gc " + '"' + f.garbageCollector + '"')
         }
@@ -1049,7 +1048,7 @@ class IRTreeEncoder(emitter : Emitter)
         emitln("")  
     }
     
-    def encodeFunctionDeclaration(f : L_FunctionDeclaration) =
+    def encodeFunctionDeclaration(f : L_FunctionDeclaration): Unit =
     {
         currentParamNum = 0
         currentSSA = 0
@@ -1063,14 +1062,14 @@ class IRTreeEncoder(emitter : Emitter)
         }
         encodeType(f.returnType)
         emit(" ")
-        emit(f->funcname)
+        emit(funcname(f))
         emit("(")
         
         var imax = f.arguments.size
         var i = 1
-        for(a<-(f.arguments))
+        for(a<- f.arguments)
         {
-            encodeType(a->resultType)
+            encodeType(resultType(a))
             if(i < imax)
             {
                 emit(", ")
@@ -1084,7 +1083,7 @@ class IRTreeEncoder(emitter : Emitter)
         {
             emitw("align " + f.alignment)
         }
-        if(f.garbageCollector.size > 0)
+        if(f.garbageCollector.nonEmpty)
         {
             emitw("gc " + '"' + f.garbageCollector + '"')
         }
@@ -1187,11 +1186,11 @@ class IRTreeEncoder(emitter : Emitter)
         0
     }
     
-    def encodeGlobalVariable(g : L_GlobalVariable) =
+    def encodeGlobalVariable(g : L_GlobalVariable): Unit =
     {
-        emit(g->gvarname)
+        emit(gvarname(g))
         emit(" =")
-        if(g.linkage.size > 0)
+        if(g.linkage.nonEmpty)
         emit(" " + g.linkage)
         if(g.addressSpace != 0)
         {
@@ -1202,10 +1201,10 @@ class IRTreeEncoder(emitter : Emitter)
             emit(" constant")
         }
         emit(" ")
-        encodeType(g.value->resultType)
+        encodeType(resultType(g.value))
         emit(" ")
         encodeValue(g.value)
-        if(g.section.size > 0)
+        if(g.section.nonEmpty)
         {
             emit(", section " + '"' + g.section + '"')
         }
@@ -1221,17 +1220,17 @@ class IRTreeEncoder(emitter : Emitter)
     
     
     
-    def emitln() =
+    def emitln(): Unit =
     {
         emit("\n")
     }
     
-    def emitln(s : String) = 
+    def emitln(s : String): Unit =
     {
         emit(s + "\n")
     }
     
-    def emit(s : String) = 
+    def emit(s : String): Unit =
     {
         emitter.emit(s)
         if(fileOutputEnabled)
@@ -1240,7 +1239,7 @@ class IRTreeEncoder(emitter : Emitter)
         }
     }
     
-    def emitw(s : String) = 
+    def emitw(s : String): Unit =
     {
         if(s.length > 0)
         {
@@ -1248,7 +1247,7 @@ class IRTreeEncoder(emitter : Emitter)
         }
     }
     
-    def appendFile(s : String)
+    def appendFile(s : String): Unit =
     {
         fileout = fileout + s
     }

@@ -20,12 +20,13 @@
 
 package org.slem.example.obr
 
-object SemanticAnalysis {
+import org.bitbucket.inkytonik.kiama.==>
+import ObrTree._
+import SymbolTable._
+import org.bitbucket.inkytonik.kiama.attribution.Attribution
+import org.bitbucket.inkytonik.kiama.util.Messaging._
 
-    import ObrTree._
-    import SymbolTable._
-    import org.kiama.attribution.Attribution._
-    import org.kiama.util.Messaging._
+object SemanticAnalysis extends Attribution {
 
     /**
      * Does the sub-tree rooted at the given node contain any semantic
@@ -44,26 +45,26 @@ object SemanticAnalysis {
                     message (p, "identifier " + i2 + " at end should be " + i1)
 
             case n @ AssignStmt (l, r)  =>
-                l->errors
-                r->errors
-                if (!(l->assignable))
+                errors(l)
+                errors(r)
+                if (!(assignable(l)))
                     message (l, "illegal assignment")
 
-            case n @ ExitStmt () if (!(n->isinloop)) =>
+            case n @ ExitStmt () if (!(isinloop(n))) =>
                 message (n, "an EXIT statement must be inside a LOOP statement")
 
             case n @ ForStmt (i, e1, e2, ss) =>
-                e1->errors
-                e2->errors
+                errors(e1)
+                errors(e2)
                 ss map (errors)
-                if (n->entity == Unknown)
+                if (entity(n) == Unknown)
                     message (n, i + " is not declared")
-                val t = (n->entity).tipe;
+                val t = (entity(n)).tipe;
                 if ((t != IntType) && (t != UnknownType))
                     message (n, "for loop variable " + i + " must be integer")
 
             case IfStmt (e, ss1, ss2) =>
-                e->errors
+                errors(e)
                 ss1 map (errors)
                 ss2 map (errors)
 
@@ -71,26 +72,26 @@ object SemanticAnalysis {
                 ss map (errors)
 
             case ReturnStmt (e) =>
-                e->errors
+                errors(e)
 
             case WhileStmt (e, ss) =>
-                e->errors
+                errors(e)
                 ss map (errors)
 
-            case n @ IntParam (i) if (n->entity == Multiple) =>
+            case n @ IntParam (i) if (entity(n) == Multiple) =>
                 message (n, i + " is declared more than once")
 
-            case n @ IntVar (i) if (n->entity == Multiple) =>
+            case n @ IntVar (i) if (entity(n) == Multiple) =>
                 message (n, i + " is declared more than once")
 
-            case n @ BoolVar (i) if (n->entity == Multiple) =>
+            case n @ BoolVar (i) if (entity(n) == Multiple) =>
                 message (n, i + " is declared more than once")
 
-            case n @ ArrayVar (i, v) if (n->entity == Multiple) =>
+            case n @ ArrayVar (i, v) if (entity(n) == Multiple) =>
                 message (n, i + " is declared more than once")
 
             case n @ RecordVar (i, _) =>
-                (n->entity) match {
+                (entity(n)) match {
                      case Variable (RecordType (fs)) =>
                          if (fs.distinct.length != fs.length)
                              message (n, i + " contains duplicate field(s)")
@@ -98,24 +99,24 @@ object SemanticAnalysis {
                          message (n, i + " is declared more than once")
                 }
 
-            case n @ IntConst (i, v) if (n->entity == Multiple) =>
+            case n @ IntConst (i, v) if (entity(n) == Multiple) =>
                 message (n, i + " is declared more than once")
 
             case e : Expression =>
                 e match {
-                    case v @ IdnExp (i) if (v->entity == Unknown) =>
+                    case v @ IdnExp (i) if (entity(v) == Unknown) =>
                         message (v, i + " is not declared")
 
                     case v @ IndexExp (a, r) =>
-                        r->errors
-                        (v->entity).tipe match {
+                        errors(r)
+                        (entity(v)).tipe match {
                             case ArrayType (_) =>
                             case _ =>
                                 message (v, "attempt to index the non-array " + a)
                         }
 
                     case v @ FieldExp (r, f) =>
-                        ((v->entity).tipe) match {
+                        ((entity(v)).tipe) match {
                             case RecordType (fs) =>
                                 if (! (fs contains f))
                                     message (v, f + " is not a field of " + r)
@@ -123,23 +124,23 @@ object SemanticAnalysis {
                                 message (v, "attempt to access field of non-record " + r)
                         }
 
-                    case AndExp (l, r)      => l->errors; r->errors
-                    case EqualExp (l, r)    => l->errors; r->errors
-                    case GreaterExp (l, r)  => l->errors; r->errors
-                    case LessExp (l, r)     => l->errors; r->errors
-                    case MinusExp (l, r)    => l->errors; r->errors
-                    case ModExp (l, r)      => l->errors; r->errors
-                    case NegExp (e)         => e->errors
-                    case NotEqualExp (l, r) => l->errors; r->errors
-                    case NotExp (e)         => e->errors
-                    case OrExp (l, r)       => l->errors; r->errors
-                    case PlusExp (l, r)     => l->errors; r->errors
-                    case SlashExp (l, r)    => l->errors; r->errors
-                    case StarExp (l, r)     => l->errors; r->errors
+                    case AndExp (l, r)      => errors(l); errors(r)
+                    case EqualExp (l, r)    => errors(l); errors(r)
+                    case GreaterExp (l, r)  => errors(l); errors(r)
+                    case LessExp (l, r)     => errors(l); errors(r)
+                    case MinusExp (l, r)    => errors(l); errors(r)
+                    case ModExp (l, r)      => errors(l); errors(r)
+                    case NegExp (e)         => errors(e)
+                    case NotEqualExp (l, r) => errors(l); errors(r)
+                    case NotExp (e)         => errors(e)
+                    case OrExp (l, r)       => errors(l); errors(r)
+                    case PlusExp (l, r)     => errors(l); errors(r)
+                    case SlashExp (l, r)    => errors(l); errors(r)
+                    case StarExp (l, r)     => errors(l); errors(r)
                     case _                  =>
                 }
-                if (!iscompatible (e->tipe, e->exptipe))
-                    message (e, "type error: expected " + (e->exptipe) + " got " + (e->tipe))
+                if (!iscompatible (tipe(e), exptipe(e)))
+                    message (e, "type error: expected " + (exptipe(e)) + " got " + (tipe(e)))
 
             case _ =>
 
@@ -162,9 +163,9 @@ object SemanticAnalysis {
         attr {
             case ObrInt (_, ds, ss, _)          => 
             {
-                if(ds.size > 0)
+                if(ds.nonEmpty)
                 {
-                    (ds.last)->envout
+                    envout(ds.last)
                 }
                 else
                 {
@@ -173,8 +174,8 @@ object SemanticAnalysis {
                 
             }
             case d : Declaration if (d.isFirst) => Map ()
-            case d : Declaration                => (d.prev[Declaration])->envout
-            case n                              => (n.parent[ObrNode])->env
+            case d : Declaration                => (envout(d.prev[Declaration]))
+            case n                              => env(n.parent[ObrNode])
         }
 
     /**
@@ -200,10 +201,10 @@ object SemanticAnalysis {
      * multiply-defined entity.
      */
     def define (n : ObrNode, i : Identifier, e : => Entity) : Environment =
-        if (n->env contains i)
-            (n->env) + ((i, Multiple))
+        if (env(n) contains i)
+            env(n) + ((i, Multiple))
         else
-            (n->env) + ((i, e))
+            env(n) + ((i, e))
 
     /**
      * The entity referred to by a declaration or a variable expression.
@@ -212,31 +213,31 @@ object SemanticAnalysis {
      */
     val entity : EntityNode ==> Entity =
         attr {
-            case n @ IntParam (i)     => (n->envout) (i)
-            case n @ IntVar (i)       => (n->envout) (i)
-            case n @ BoolVar (i)      => (n->envout) (i)
-            case n @ ArrayVar (i, v)  => (n->envout) (i)
-            case n @ RecordVar (i, _) => (n->envout) (i)
-            case n @ IntConst (i, v)  => (n->envout) (i)
+            case n @ IntParam (i)     => envout(n) (i)
+            case n @ IntVar (i)       => envout(n) (i)
+            case n @ BoolVar (i)      => envout(n) (i)
+            case n @ ArrayVar (i, v)  => envout(n) (i)
+            case n @ RecordVar (i, _) => envout(n) (i)
+            case n @ IntConst (i, v)  => envout(n) (i)
 
             case n @ ForStmt (i, e1, e2, ss) =>
-                (n->env).get (i) match {
+                env(n).get (i) match {
                      case Some (e) => e
                      case None     => Unknown
                 }
 
             case n @ IdnExp (i) =>
-                (n->env).get (i) match {
+                env(n).get (i) match {
                      case Some (e) => e
                      case None     => Unknown
                 }
             case n @ IndexExp (i, _) =>
-                (n->env).get (i) match {
+                env(n).get (i) match {
                      case Some (e) => e
                      case None     => Unknown
                 }
             case n @ FieldExp (i, _) =>
-                (n->env).get (i) match {
+                env(n).get (i) match {
                      case Some (e) => e
                      case None     => Unknown
                 }
@@ -252,7 +253,7 @@ object SemanticAnalysis {
             case EqualExp (l, r)    => BoolType
             case FieldExp (r, f)    => IntType
             case GreaterExp (l, r)  => BoolType
-            case n : IdnExp         => (n->entity).tipe
+            case n : IdnExp         => entity(n).tipe
             case IndexExp (l, r)    => IntType
             case IntExp (i)         => IntType
             case LessExp (l, r)     => BoolType
@@ -277,7 +278,7 @@ object SemanticAnalysis {
                 (e.parent) match {
                     case AssignStmt (IndexExp (_, _), `e`) => IntType
                     case AssignStmt (FieldExp (_, _), `e`) => IntType
-                    case AssignStmt (v : IdnExp, `e`)      => (v->entity).tipe
+                    case AssignStmt (v : IdnExp, `e`)      => entity(v).tipe
 
                     case ForStmt (_, _, _, _) => IntType
                     case IfStmt (_, _, _)     => BoolType
@@ -285,14 +286,14 @@ object SemanticAnalysis {
                     case WhileStmt (_, _)     => BoolType
 
                     case AndExp (_, _)        => BoolType
-                    case EqualExp (l, `e`)    => l->tipe
+                    case EqualExp (l, `e`)    => tipe(l)
                     case GreaterExp (_, _)    => IntType
                     case IndexExp (_, `e`)    => IntType
                     case LessExp (_, _)       => IntType
                     case MinusExp (_, _)      => IntType
                     case ModExp (_, _)        => IntType
                     case NegExp (_)           => IntType
-                    case NotEqualExp (l, `e`) => l->tipe
+                    case NotEqualExp (l, `e`) => tipe(l)
                     case NotExp (_)           => BoolType
                     case OrExp (_, _)         => BoolType
                     case PlusExp (_, _)       => IntType
@@ -308,7 +309,7 @@ object SemanticAnalysis {
      */
     val assignable : Expression ==> Boolean =
         attr {
-            case n @ IdnExp (_)  => (n->entity).isassignable
+            case n @ IdnExp (_)  => entity(n).isassignable
             case IndexExp (_, _) => true
             case FieldExp (_, _) => true
             case _               => false
@@ -323,7 +324,7 @@ object SemanticAnalysis {
             case s => (s.parent) match {
                 case _ : ObrInt    => false
                 case LoopStmt (_)  => true
-                case p : Statement => p->isinloop
+                case p : Statement => isinloop(p)
             }
         }
 

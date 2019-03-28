@@ -19,13 +19,15 @@
 
 package org.slem
 
-object IRTree {
-    import org.kiama.attribution.Attributable
-    import org.kiama.attribution.Attribution._
-    import org.kiama.util.Messaging._
-    
+import org.bitbucket.inkytonik.kiama.==>
+
+import scala.language.implicitConversions
+import org.bitbucket.inkytonik.kiama.attribution.Attribution
+
+object IRTree extends Attribution {
+
     ////////////BASICS////////////
-    sealed abstract class L_Node extends Attributable
+    sealed abstract class L_Node
     
     abstract class L_BaseModule extends L_Node
     
@@ -42,7 +44,7 @@ object IRTree {
     {
         var mappedMetadataIdn : L_Metadata = null
         var mappedMetadataVal : L_Metadata = null
-        def mapMetadata(mdidn : L_Metadata, mdval : L_Metadata) = 
+        def mapMetadata(mdidn : L_Metadata, mdval : L_Metadata): Unit =
         {
             mappedMetadataIdn = mdidn
             mappedMetadataVal = mdval
@@ -105,21 +107,21 @@ object IRTree {
     ////////////FUNCTION DEFINITIONS////////////
     case class L_FunctionDefinition(
         returnType       	    : L_Type,
-        blocks                  : List[L_Block],
+        blocks                : List[L_Block],
         funcName         	    : String = "",               //Optional
         arguments        	    : List[L_Argument] = List(), //Optional
-        linkage          	    : String = "",			     //Optional
-        visibilityStyle         : String = "",			     //Optional
-        callConvention   	    : String = "",			     //Optional
+        linkage          	    : String = "",			         //Optional
+        visibilityStyle       : String = "",			         //Optional
+        callConvention   	    : String = "",			         //Optional
         returnAttributes 	    : List[String] = List(),     //Optional
         funcAttributes   	    : List[String] = List(),     //Optional
-        section                 : String = "",			     //Optional
-        alignment               : Int = 0,		             //Optional
-        garbageCollector        : String = ""   		     //Optional
+        section               : String = "",			         //Optional
+        alignment             : Int = 0,		               //Optional
+        garbageCollector      : String = ""   		         //Optional
         ) extends L_Function
     
     case class L_Argument(ty : L_Type, value : L_Value = null, attrs : List[String] = List(), argName : String = "") extends L_Node with L_Value
-    implicit def valueToArgument(valuein : L_Value) : L_Argument = L_Argument(valuein->resultType, value = valuein)
+    implicit def valueToArgument(valuein : L_Value) : L_Argument = L_Argument(resultType(valuein), value = valuein)
     implicit def typeToArgument(typ : L_Type) : L_Argument = L_Argument(typ)
     
     /* Deprecated - unnessacary
@@ -217,8 +219,8 @@ object IRTree {
     ////////////BINARY OPERATOR INSTRUCTIONS////////////
     abstract class L_BinOpInstruction(LHSin : L_Value, RHSin : L_Value) extends L_Instruction with L_Value
     {
-        val LHS = LHSin;
-        val RHS = RHSin;
+        val LHS = LHSin
+        val RHS = RHSin
         val instructionString = "Unknown Binary Instruction"
     }
     
@@ -419,22 +421,22 @@ object IRTree {
         {
             if(upref.levels == 1)
             {
-                return L_PointerType(upref);
+                L_PointerType(upref)
             }
             else if(upref.levels > 1)
             {
                 if(prevPtrTypeList.length - upref.levels + 1 >= 0)
                 {
-                    return L_PointerType(prevPtrTypeList(prevPtrTypeList.length - upref.levels + 1))
+                    L_PointerType(prevPtrTypeList(prevPtrTypeList.length - upref.levels + 1))
                 }
                 else
                 {
-                    return L_OpaqueType() //Type error has occured
+                    L_OpaqueType() //Type error has occurred
                 }                            
             }
             else
             {
-                L_OpaqueType() //Type error has occured
+                L_OpaqueType() //Type error has occurred
             }
         }
         
@@ -488,7 +490,7 @@ object IRTree {
                     {
                         val nextType = t.elementType
                         val idxTail = indexes.tail
-                        if(idxTail.size > 0)
+                        if(idxTail.nonEmpty)
                         {
                             getResultType(nextType, idxTail, prevPtrTypeList ::: List(t))
                         }
@@ -505,7 +507,7 @@ object IRTree {
                     {
                         val nextType = t.elementType
                         val idxTail = indexes.tail
-                        if(idxTail.size > 0)
+                        if(idxTail.nonEmpty)
                         {
                             getResultType(nextType, idxTail, prevPtrTypeList ::: List(t))
                         }
@@ -522,7 +524,7 @@ object IRTree {
                     {
                         val nextType = t.pointer
                         val idxTail = indexes.tail
-                        if(idxTail.size > 0)
+                        if(idxTail.nonEmpty)
                         {
                             getResultType(nextType, idxTail, prevPtrTypeList ::: List(t))
                         }
@@ -547,7 +549,7 @@ object IRTree {
                                                                                 // source code would have to define over max_int 
                                                                                 // fields one by one!
                                 val idxTail = indexes.tail
-                                if(idxTail.size > 0)
+                                if(idxTail.nonEmpty)
                                 {
                                     getResultType(nextType, idxTail, prevPtrTypeList ::: List(t))
                                 }
@@ -578,7 +580,7 @@ object IRTree {
                                                                                 // source code would have to define over max_int 
                                                                                 // fields one by one!
                                 val idxTail = indexes.tail
-                                if(idxTail.size > 0)
+                                if(idxTail.nonEmpty)
                                 {
                                     getResultType(nextType, idxTail, prevPtrTypeList ::: List(t))
                                 }
@@ -804,7 +806,7 @@ object IRTree {
     
     case class L_InsertValue(value : L_Value, elt : L_Value, idx : L_Value) extends L_Instruction with L_Value
     
-    val resultType : L_Node ==> L_Type = 
+    val resultType: L_Node ==> L_Type =
     {
         attr {
             //FUNCTION DECLARATIONS
@@ -843,43 +845,43 @@ object IRTree {
             case n : L_Void           => L_VoidType()
             
             //COMPLEX CONSTANTS
-            case n : L_Structure       => L_StructureType(n.elements.map(e => e->resultType))
-            case n : L_PackedStructure => L_PackedStructureType(n.elements.map(e => e->resultType))
-            case n : L_Array           => L_ArrayType(n.elements.size, n.elements.head->resultType)
+            case n : L_Structure       => L_StructureType(n.elements.map(e => resultType(e)))
+            case n : L_PackedStructure => L_PackedStructureType(n.elements.map(e => resultType(e)))
+            case n : L_Array           => L_ArrayType(n.elements.size, resultType(n.elements.head))
             case n : L_String          => L_ArrayType(n.s.size - (n.s.filter(c => (c == '\\')).size * 2), L_IntType(8))
-            case n : L_Vector          => L_VectorType(n.elements.size, n.elements.head->resultType)
+            case n : L_Vector          => L_VectorType(n.elements.size, resultType(n.elements.head))
             case n : L_ZeroInitialiser => n.typ
             
             //BINARY OPERATOR INSTRUCTIONS
             /* Deprecated code - simplified 
-            case n : L_Add            => (n.LHS)->resultType
-            case n : L_NSWAdd         => (n.LHS)->resultType
-            case n : L_NUWAdd         => (n.LHS)->resultType
-            case n : L_FAdd           => (n.LHS)->resultType
-            case n : L_Sub            => (n.LHS)->resultType
-            case n : L_NSWSub         => (n.LHS)->resultType
-            case n : L_NUWSub         => (n.LHS)->resultType
-            case n : L_FSub           => (n.LHS)->resultType
-            case n : L_Mul            => (n.LHS)->resultType
-            case n : L_NSWMul         => (n.LHS)->resultType
-            case n : L_NUWMul         => (n.LHS)->resultType
-            case n : L_FMul           => (n.LHS)->resultType
-            case n : L_UDiv           => (n.LHS)->resultType
-            case n : L_ExactUDiv      => (n.LHS)->resultType
-            case n : L_SDiv           => (n.LHS)->resultType
-            case n : L_ExactSDiv      => (n.LHS)->resultType
-            case n : L_FDiv           => (n.LHS)->resultType
-            case n : L_URem           => (n.LHS)->resultType
-            case n : L_SRem           => (n.LHS)->resultType
-            case n : L_FRem           => (n.LHS)->resultType
-            case n : L_Shl            => (n.LHS)->resultType
-            case n : L_LShr           => (n.LHS)->resultType
-            case n : L_AShr           => (n.LHS)->resultType
-            case n : L_And            => (n.LHS)->resultType
-            case n : L_Or             => (n.LHS)->resultType
-            case n : L_Xor            => (n.LHS)->resultType
+            case n : L_Add            => resultType(n.LHS)
+            case n : L_NSWAdd         => resultType(n.LHS)
+            case n : L_NUWAdd         => resultType(n.LHS)
+            case n : L_FAdd           => resultType(n.LHS)
+            case n : L_Sub            => resultType(n.LHS)
+            case n : L_NSWSub         => resultType(n.LHS)
+            case n : L_NUWSub         => resultType(n.LHS)
+            case n : L_FSub           => resultType(n.LHS)
+            case n : L_Mul            => resultType(n.LHS)
+            case n : L_NSWMul         => resultType(n.LHS)
+            case n : L_NUWMul         => resultType(n.LHS)
+            case n : L_FMul           => resultType(n.LHS)
+            case n : L_UDiv           => resultType(n.LHS)
+            case n : L_ExactUDiv      => resultType(n.LHS)
+            case n : L_SDiv           => resultType(n.LHS)
+            case n : L_ExactSDiv      => resultType(n.LHS)
+            case n : L_FDiv           => resultType(n.LHS)
+            case n : L_URem           => resultType(n.LHS)
+            case n : L_SRem           => resultType(n.LHS)
+            case n : L_FRem           => resultType(n.LHS)
+            case n : L_Shl            => resultType(n.LHS)
+            case n : L_LShr           => resultType(n.LHS)
+            case n : L_AShr           => resultType(n.LHS)
+            case n : L_And            => resultType(n.LHS)
+            case n : L_Or             => resultType(n.LHS)
+            case n : L_Xor            => resultType(n.LHS)
             */
-            case n : L_BinOpInstruction => (n.LHS)->resultType
+            case n : L_BinOpInstruction => resultType(n.LHS)
             
             //MEMORY INSTRUCTIONS
             case n : L_Alloca         => L_PointerType(n.typ) //TODO: FIX THIS!!! Assumes that all stack memory locations are in 32 bits
@@ -972,14 +974,14 @@ object IRTree {
                 if(n.valueLabels.size > 0)
                 {
                     val firstElement = n.valueLabels.head
-                    (firstElement.value)->resultType
+                    resultType(firstElement.value)
                 }
                 else
                 {
                     L_OpaqueType() //Type Error
                 }
             }
-            case n : L_Select         => (n.val1)->resultType
+            case n : L_Select         => resultType(n.val1)
             case n : L_Call           => 
             {
                 if(n.typ != null)
@@ -988,7 +990,7 @@ object IRTree {
                 }
                 else
                 {
-                    n.fnptrval->resultType
+                    resultType(n.fnptrval)
                 }
             }
 
@@ -998,27 +1000,27 @@ object IRTree {
                 if(n.funcTypePtr != null)
                     n.funcTypePtr
                 else
-                    n.funcPtrVal->resultType
+                    resultType(n.funcPtrVal)
             }
             //VECTOR OPERATIONS
             case n : L_ExtractElement => 
             {
-                val vecType = ((n.vec)->resultType)
+                val vecType = resultType(n.vec)
                 vecType match
                 {
                     case v : L_VectorType => v.elementType
                     case _ => L_OpaqueType() //Type error
                 }
             }
-            case n : L_InsertElement  => (n.vec)->resultType
+            case n : L_InsertElement  => resultType(n.vec)
             case n : L_ShuffleVector  => 
             {
-                val vecType   = (n.v1)->resultType
+                val vecType   = resultType(n.v1)
                 vecType match
                 {
                     case v : L_VectorType =>
                     {
-                        val vecLength = (n.mask)->resultType
+                        val vecLength = resultType(n.mask)
                         vecLength match
                         {
                             case v2 : L_VectorType =>
@@ -1043,7 +1045,7 @@ object IRTree {
                 else
                 {
                     
-                    var out = (n.value)->resultType
+                    var out = resultType(n.value)
                     var prevTypes : List[L_Type] = List()
                     for(idx <- n.indexes)
                     {
@@ -1109,11 +1111,11 @@ object IRTree {
                     out
                 }
             }
-            case n : L_InsertValue    => (n.value)->resultType
+            case n : L_InsertValue    => resultType(n.value)
             
             case n : L_Argument => n.ty
             
-            case n : L_GlobalVariable => (n.value)->resultType
+            case n : L_GlobalVariable => resultType(n.value)
             case _ => L_OpaqueType() //Type error
         }
     }	

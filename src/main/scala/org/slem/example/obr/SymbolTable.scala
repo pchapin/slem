@@ -18,14 +18,15 @@
 
 package org.slem.example.obr
 
+import ObrTree._
+import scala.collection.immutable.Map
+
+
 /**
  * Symbol table module containing facilities for creating and
  * manipulating Obr language symbol information.
  */
 object SymbolTable {
-
-    import ObrTree._
-    import scala.collection.immutable.Map
 
     /**
      * An environment is a map from identifiers to entities.  I.e.

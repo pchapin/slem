@@ -22,17 +22,17 @@
 
 package org.slem.example.obr
 
+import org.bitbucket.inkytonik.kiama.attribution.Attribution
+
 /**
  * Module containing structures for representing Obr programs.
  */
 object ObrTree {
 
-    import org.kiama.attribution.Attributable
-
     /**
      * Interface for all Obr tree nodes.
      */
-    sealed abstract class ObrNode extends Attributable
+    sealed abstract class ObrNode extends Attribution
 
     /**
      * An Obr program consisting of the given declarations and statements and

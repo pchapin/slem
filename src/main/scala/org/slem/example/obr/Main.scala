@@ -25,20 +25,20 @@ package org.slem.example.obr
 import org.slem.example.obr.ObrTree.ObrInt
 import org.kiama.util.RegexCompiler
 //import org.slem.example.obr.SyntaxAnalysis
+import java.io.FileReader
+import org.bitbucket.inkytonik.kiama.util.Console
+import org.bitbucket.inkytonik.kiama.util.Emitter
+import org.bitbucket.inkytonik.kiama.util.Messaging._
+import org.slem.IRTree._
+import org.slem.IRTreeEncoder
+import org.slem.example.obr.IRTransform._
+import org.slem.example.obr.SemanticAnalysis._
+
 
 /**
  * Obr language implementation compiler driver.
  */
 class Driver extends SyntaxAnalysis with RegexCompiler[ObrInt] {
-
-    import java.io.FileReader
-    import org.kiama.util.Console
-    import org.kiama.util.Emitter
-    import org.kiama.util.Messaging._
-    import org.slem.IRTree._
-    import org.slem.IRTreeEncoder
-    import org.slem.example.obr.IRTransform._
-    import org.slem.example.obr.SemanticAnalysis._
 
     /**
      * The usage message for an erroneous invocation.
@@ -56,12 +56,12 @@ class Driver extends SyntaxAnalysis with RegexCompiler[ObrInt] {
         val testprog = false
         val newprog = true
 
-        ast->errors
+        errors(ast)
         if (messagecount > 0) {
             report
             false
         } else {
-            val targettree = ast->code
+            val targettree = code(ast)
             //println(targettree)
             val e = new IRTreeEncoder(emitter)
             e.encodeTree(targettree)
