@@ -21,11 +21,11 @@
 
 package org.slem
  
+import org.bitbucket.inkytonik.kiama.util.StringEmitter
 import org.scalatest.Spec
 import org.slem.IRTree._
 import org.slem.IRTreeEncoder
 import org.kiama.util.Console
-import org.kiama.util.StringEmitter
  
 class GlobalVariableSpec extends Spec {
 
